@@ -1,0 +1,30 @@
+Challenge Problem solutions can be searched using 
+"Challenge Problem Lab 'LAB_NO'"
+e.g. For Lab 1
+"Challenge Problem Lab 1"
+
+
+Lab 1
+Enhance the console to allow text to be printed in different colors
+
+-Changes can be seen in kern/console.c, kern/monitor.c.
+-In monitor.c provided extra command i.e. colortext which will change the color of the text
+-Added function cgi_put_color which will change the global variable color-->console.c
+-cgi_putc will output characters as per new c value
+
+Lab 2
+Extend the JOS kernel monitor
+- Added page_alloc, page_free, page_availability etc. to help debugging
+
+Lab 4
+Implemented a shared-memory fork() called sfork()
+1. Used duppage for stack areai which treats pages in the usual copy-on-write manner
+2. otherwise parent and child share pages
+3. changes can be seen in lib/fork.c
+
+Lab 5
+Adding Eviction to the Block Cache
+
+1. Added another case where the block can be evicted from the cache.
+2. Earlier we were block was evicting from the cache if it was mapped and dirty.To remove blocks which are not in use, we check if the block was mapped and the PTE_A bit was not set.
+

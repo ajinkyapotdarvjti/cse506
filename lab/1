@@ -1,0 +1,103 @@
+#include <inc/assert.h>
+
+#include <kern/env.h>
+#include <kern/pmap.h>
+#include <kern/monitor.h>
+
+
+// Choose a user environment to run and run it.
+void
+sched_yield(void)
+{
+	struct Env *idle;
+	int i;
+
+	// Implement simple round-robin scheduling.
+	//
+	// Search through 'envs' for an ENV_RUNNABLE environment in
+	// circular fashion starting just after the env this CPU was
+	// last running.  Switch to the first such environment found.
+	//
+	// If no envs are runnable, but the environment previously
+	// running on this CPU is still ENV_RUNNING, it's okay to
+	// choose that environment.
+	//
+	// Never choose an environment that's currently running on
+	// another CPU (env_status == ENV_RUNNING) and never choose an
+	// idle environment (env_type == ENV_TYPE_IDLE).  If there are
+	// no runnable environments, simply drop through to the code
+	// below to switch to this CPU's idle environment.
+
+	// LAB 4: Your code here.
+
+	// For debugging and testing purposes, if there are no
+	// runnable environments other than the idle environments,
+	// drop into the kernel monitor.
+
+	int index_env_next = -1;
+
+	cprintf("current CPU = %d, current environment = %d\n", thiscpu->cpu_id, (thiscpu->cpu_env-envs));
+	
+	if (!thiscpu->cpu_env) {
+		i = NCPU - 1;
+	} else {
+		//cprintf("env id = %d, difference = %d\n", thiscpu->cpu_env->env_id, (thiscpu->cpu_env-envs));
+		i = (thiscpu->cpu_env->env_id) % NENV;
+	}
+	int j;
+	for (j=i+1; j<NENV; j++) {
+			if (envs[j].env_status == ENV_RUNNABLE) {
+				index_env_next = j;
+				break;
+			}
+	}
+
+	if (index_env_next == -1) {
+		for (j=NCPU; j<i; j++) {
+			if (envs[j].env_status == ENV_RUNNABLE) {
+				index_env_next = j;
+				break;
+			}
+		}
+	}
+
+	if (index_env_next == -1) {
+		cprintf("No more runnable environments!\n");
+		cprintf("status of child = %d\n", envs[9].env_status);
+		if (thiscpu->cpu_env && thiscpu->cpu_env->env_status == ENV_RUNNING) {
+			index_env_next = thiscpu->cpu_env->env_id;
+		} else {
+			index_env_next = thiscpu->cpu_id;
+			if (!(envs[index_env_next].env_status == ENV_RUNNABLE || envs[index_env_next].env_status == ENV_RUNNING)) {
+				index_env_next = -1;
+				panic("CPU %d: No idle environment!", cpunum());
+			}
+			else { // for debugging and testing only
+				cprintf("Dropping into kernel monitor\n");
+				while (1) {
+					monitor(NULL);
+				}
+			}
+		}
+		/*
+		while (1)
+			monitor(NULL);
+		*/
+	}
+
+	if (thiscpu->cpu_env) {
+		thiscpu->cpu_env->env_status = ENV_RUNNABLE;
+	}
+
+	thiscpu->cpu_env = &envs[index_env_next];
+	//cprintf("scheduling environment = %0x\n", (thiscpu->cpu_env-envs));
+	env_run(&envs[index_env_next]);
+
+	// Run this CPU's idle environment when nothing else is runnable.
+	/*
+	idle = &envs[cpunum()];
+	if (!(idle->env_status == ENV_RUNNABLE || idle->env_status == ENV_RUNNING))
+		panic("CPU %d: No idle environment!", cpunum());
+	*/
+
+}

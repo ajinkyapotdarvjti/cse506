@@ -1,0 +1,69 @@
+diff --git a/net/input.c b/net/input.c
+index f4f6bda..12a68a0 100644
+--- a/net/input.c
++++ b/net/input.c
+@@ -2,6 +2,25 @@
+ #include "kern/e1000.h"
+ 
+ extern union Nsipc nsipcbuf;
++static struct jif_pkt *pkt = (struct jif_pkt*)&nsipcbuf;
++
++//char data[4096];
++
++void
++static msleep(int msec)
++{
++        unsigned now = sys_time_msec();
++        unsigned end = now + msec;
++
++        if ((int)now < 0 && (int)now > -MAXERROR)
++                panic("sys_time_msec: %e", (int)now);
++        if (end < now)
++                panic("sleep: wrap");
++
++        while (sys_time_msec() < end)
++                sys_yield();
++}
++
+ 
+ void
+ input(envid_t ns_envid)
+@@ -16,27 +35,30 @@ input(envid_t ns_envid)
+ 	// another packet in to the same physical page.
+ 
+         int r;
++         if ((r = sys_page_alloc(0, pkt, PTE_P|PTE_U|PTE_W)) < 0)
++                        panic("sys_page_alloc: %e", r);
++
++
+         envid_t current_envid = sys_getenvid();
+         while (1) {
+ 
+                 //cprintf("Reading a packet from the device driver\n");
+ 
+-                char data[2048];
++             //   char data[2048];
+ 		int length;
+ 
+-		while((r=sys_net_try_receive(data, &length))<0);
+-
+-      
+-                if ((r = sys_page_alloc(0, &nsipcbuf, PTE_P|PTE_U|PTE_W)) < 0)
+-                        panic("sys_page_alloc: %e", r);
++		while((r=sys_net_try_receive(pkt->jp_data, &length))<0) {
++			 msleep(100);
++		}
+ 
+ 		nsipcbuf.pkt.jp_len = length;
+-		memmove(nsipcbuf.pkt.jp_data, (void*)data, length);
++//		memmove(nsipcbuf.pkt.jp_data, (void*)data, length);
+ 
+                 //cprintf("Received a packet from the device driver, data = %s, length = %d\n", nsipcbuf.pkt.jp_data, nsipcbuf.pkt.jp_len);
+ 
+ 		//cprintf("Sending a packet to the network server in environment....%0x\n", current_envid);
+-		while(sys_ipc_try_send(ns_envid, NSREQ_INPUT, &nsipcbuf, PTE_P|PTE_W|PTE_U) < 0);
++		ipc_send(ns_envid, NSREQ_INPUT, pkt, PTE_P|PTE_W|PTE_U);
+                 //cprintf("packet sent to the network server\n");
++		 msleep(100);
+         }
+ }

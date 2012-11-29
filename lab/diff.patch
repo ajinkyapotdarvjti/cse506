@@ -1,0 +1,24 @@
+diff -rauB /home/amit/kern/pmap.c kern/pmap.c
+--- /home/amit/kern/pmap.c	2012-09-11 18:57:35.692995251 -0400
++++ kern/pmap.c	2012-09-11 18:51:19.306919978 -0400
+@@ -424,7 +424,7 @@
+ // edited are the ones currently in use by the processor.
+ //
+ 	void
+-tlb_invalidate(pde_t *pgdir, void *va)
++tlb_invalidate(pml4e_t *pml4e, void *va)
+ {
+ 	// Flush the entry only if we're modifying the current address space.
+ 	// For now, there is only one address space, so always invalidate.
+diff -rauB /home/amit/kern/pmap.h kern/pmap.h
+--- /home/amit/kern/pmap.h	2012-09-11 18:57:47.530984856 -0400
++++ kern/pmap.h	2012-09-11 18:45:18.668180091 -0400
+@@ -57,7 +57,7 @@
+ struct Page *page_lookup(pml4e_t *pml4e, void *va, pte_t **pte_store);
+ void	page_decref(struct Page *pp);
+ 
+-void	tlb_invalidate(pde_t *pgdir, void *va);
++void	tlb_invalidate(pml4e_t *pml4e, void *va);
+ 
+ static inline ppn_t
+ page2ppn(struct Page *pp)
