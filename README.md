@@ -1,1 +1,1 @@
-CSE506 JOS Labs
+Operating System(CSE506) JOS Labs
